@@ -12,8 +12,8 @@
 #
 # ??-???-????   abc Initial edit
 
-from falcon import Request, Response, HTTPBadRequest, before
-from logging import Logger
+from adafruit_httpserver import Request, Response, JSONResponse, Server, Route, GET, PUT, BAD_REQUEST_400, InvalidPathError
+from adafruit_logging import Logger
 from shr import PropertyResponse, MethodResponse, PreProcessRequest, \
                 StateValue, get_request_field, to_bool
 from exceptions import *        # Nothing but exception classes
@@ -51,49 +51,49 @@ class FocuserMetadata:
 # RESOURCE CONTROLLERS
 # --------------------
 
-@before(PreProcessRequest(maxdev))
 class action:
+    @PreProcessRequest(maxdev)
     def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = MethodResponse(req, NotImplementedException()).json
+        return JSONResponse(MethodResponse(req, NotImplementedException()).dict)
 
-@before(PreProcessRequest(maxdev))
 class commandblind:
+    @PreProcessRequest(maxdev)
     def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = MethodResponse(req, NotImplementedException()).json
+        return JSONResponse(MethodResponse(req, NotImplementedException()).dict)
 
-@before(PreProcessRequest(maxdev))
 class commandbool:
+    @PreProcessRequest(maxdev)
     def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = MethodResponse(req, NotImplementedException()).json
+        return JSONResponse(MethodResponse(req, NotImplementedException()).dict)
 
-@before(PreProcessRequest(maxdev))
 class commandstring:
+    @PreProcessRequest(maxdev)
     def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = MethodResponse(req, NotImplementedException()).json
+        return JSONResponse(MethodResponse(req, NotImplementedException()).dict)
 
-@before(PreProcessRequest(maxdev))
 class connect:
+    @PreProcessRequest(maxdev)
     def on_put(self, req: Request, resp: Response, devnum: int):
         try:
             # ------------------------
             ### CONNECT THE DEVICE ###
             # ------------------------
-            resp.text = MethodResponse(req).json
+            return JSONResponse(MethodResponse(req).dict)
         except Exception as ex:
-            resp.text = MethodResponse(req,
-                            DriverException(0x500, 'Focuser.Connect failed', ex)).json
+            return JSONResponse(MethodResponse(req,
+                            DriverException(0x500, 'Focuser.Connect failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class connected:
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
         try:
             # -------------------------------------
             is_conn = ### READ CONN STATE ###
             # -------------------------------------
-            resp.text = PropertyResponse(is_conn, req).json
+            return JSONResponse(PropertyResponse(is_conn, req).dict)
         except Exception as ex:
-            resp.text = MethodResponse(req, DriverException(0x500, 'Focuser.Connected failed', ex)).json
-
+            return JSONResponse(MethodResponse(req, DriverException(0x500, 'Focuser.Connected failed', ex)).dict)
+    @PreProcessRequest(maxdev)
     def on_put(self, req: Request, resp: Response, devnum: int):
         conn_str = get_request_field('Connected', req)
         conn = to_bool(conn_str)              # Raises 400 Bad Request if str to bool fails
@@ -102,310 +102,315 @@ class connected:
             # --------------------------------------
             ### CONNECT OR DISCONNECT THE DEVICE ###
             # --------------------------------------
-            resp.text = MethodResponse(req).json
+            return JSONResponse(MethodResponse(req).dict)
         except Exception as ex:
-            resp.text = MethodResponse(req, # Put is actually like a method :-(
-                            DriverException(0x500, 'Focuser.Connected failed', ex)).json
+            return JSONResponse(MethodResponse(req, # Put is actually like a method :-(
+                            DriverException(0x500, 'Focuser.Connected failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class connecting:
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
         try:
             # ------------------------------
             val = ## GET CONNECTING STATE ##
             # ------------------------------
-            resp.text = PropertyResponse(val, req).json
+            return JSONResponse(PropertyResponse(val, req).dict)
         except Exception as ex:
-            resp.text = PropertyResponse(None, req,
-                            DriverException(0x500, 'Focuser.Connecting failed', ex)).json
+            return JSONResponse(PropertyResponse(None, req,
+                            DriverException(0x500, 'Focuser.Connecting failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class description:
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = PropertyResponse(FocuserMetadata.Description, req).json
+        return JSONResponse(PropertyResponse(FocuserMetadata.Description, req).dict)
 
-@before(PreProcessRequest(maxdev))
 class devicestate:
-
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
         if not ##IS DEV CONNECTED##:
-            resp.text = PropertyResponse(None, req,
-                            NotConnectedException()).json
-            return
+            return JSONResponse(PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         try:
             # ----------------------
             val = []
             # val.append(StateValue('## NAME ##', ## GET VAL ##))
             # Repeat for each of the operational states per the device spec
             # ----------------------
-            resp.text = PropertyResponse(val, req).json
+            return JSONResponse(PropertyResponse(val, req).dict)
         except Exception as ex:
-            resp.text = PropertyResponse(None, req,
-                            DriverException(0x500, 'focuser.Devicestate failed', ex)).json
+            return JSONResponse(PropertyResponse(None, req,
+                            DriverException(0x500, 'focuser.Devicestate failed', ex)).dict)
 
 
 class disconnect:
+    @PreProcessRequest(maxdev)
     def on_put(self, req: Request, resp: Response, devnum: int):
         try:
             # ---------------------------
             ### DISCONNECT THE DEVICE ###
             # ---------------------------
-            resp.text = MethodResponse(req).json
+            return JSONResponse(MethodResponse(req).dict)
         except Exception as ex:
-            resp.text = MethodResponse(req,
-                            DriverException(0x500, 'Focuser.Disconnect failed', ex)).json
+            return JSONResponse(MethodResponse(req,
+                            DriverException(0x500, 'Focuser.Disconnect failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class driverinfo:
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = PropertyResponse(FocuserMetadata.Info, req).json
+        return JSONResponse(PropertyResponse(FocuserMetadata.Info, req).dict)
 
-@before(PreProcessRequest(maxdev))
 class interfaceversion:
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = PropertyResponse(FocuserMetadata.InterfaceVersion, req).json
+        return JSONResponse(PropertyResponse(FocuserMetadata.InterfaceVersion, req).dict)
 
-@before(PreProcessRequest(maxdev))
 class driverversion():
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = PropertyResponse(FocuserMetadata.Version, req).json
+        return JSONResponse(PropertyResponse(FocuserMetadata.Version, req).dict)
 
-@before(PreProcessRequest(maxdev))
 class name():
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = PropertyResponse(FocuserMetadata.Name, req).json
+        return JSONResponse(PropertyResponse(FocuserMetadata.Name, req).dict)
 
-@before(PreProcessRequest(maxdev))
 class supportedactions:
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = PropertyResponse([], req).json  # Not PropertyNotImplemented
+        return JSONResponse(PropertyResponse([], req).dict)  # Not PropertyNotImplemented
 
-@before(PreProcessRequest(maxdev))
 class absolute:
-
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
         if not ##IS DEV CONNECTED##:
-            resp.text = PropertyResponse(None, req,
-                            NotConnectedException()).json
-            return
+            return JSONResponse(PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         
         try:
             # ----------------------
             val = ## GET PROPERTY ##
             # ----------------------
-            resp.text = PropertyResponse(val, req).json
+            return JSONResponse(PropertyResponse(val, req).dict)
         except Exception as ex:
-            resp.text = PropertyResponse(None, req,
-                            DriverException(0x500, 'Focuser.Absolute failed', ex)).json
+            return JSONResponse(PropertyResponse(None, req,
+                            DriverException(0x500, 'Focuser.Absolute failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class ismoving:
-
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
         if not ##IS DEV CONNECTED##:
-            resp.text = PropertyResponse(None, req,
-                            NotConnectedException()).json
-            return
+            return JSONResponse(PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         
         try:
             # ----------------------
             val = ## GET PROPERTY ##
             # ----------------------
-            resp.text = PropertyResponse(val, req).json
+            return JSONResponse(PropertyResponse(val, req).dict)
         except Exception as ex:
-            resp.text = PropertyResponse(None, req,
-                            DriverException(0x500, 'Focuser.Ismoving failed', ex)).json
+            return JSONResponse(PropertyResponse(None, req,
+                            DriverException(0x500, 'Focuser.Ismoving failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class maxincrement:
-
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
         if not ##IS DEV CONNECTED##:
-            resp.text = PropertyResponse(None, req,
-                            NotConnectedException()).json
-            return
+            return JSONResponse(PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         
         try:
             # ----------------------
             val = ## GET PROPERTY ##
             # ----------------------
-            resp.text = PropertyResponse(val, req).json
+            return JSONResponse(PropertyResponse(val, req).dict)
         except Exception as ex:
-            resp.text = PropertyResponse(None, req,
-                            DriverException(0x500, 'Focuser.Maxincrement failed', ex)).json
+            return JSONResponse(PropertyResponse(None, req,
+                            DriverException(0x500, 'Focuser.Maxincrement failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class maxstep:
-
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
         if not ##IS DEV CONNECTED##:
-            resp.text = PropertyResponse(None, req,
-                            NotConnectedException()).json
-            return
+            return JSONResponse(PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         
         try:
             # ----------------------
             val = ## GET PROPERTY ##
             # ----------------------
-            resp.text = PropertyResponse(val, req).json
+            return JSONResponse(PropertyResponse(val, req).dict)
         except Exception as ex:
-            resp.text = PropertyResponse(None, req,
-                            DriverException(0x500, 'Focuser.Maxstep failed', ex)).json
+            return JSONResponse(PropertyResponse(None, req,
+                            DriverException(0x500, 'Focuser.Maxstep failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class position:
-
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
         if not ##IS DEV CONNECTED##:
-            resp.text = PropertyResponse(None, req,
-                            NotConnectedException()).json
-            return
+            return JSONResponse(PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         
         try:
             # ----------------------
             val = ## GET PROPERTY ##
             # ----------------------
-            resp.text = PropertyResponse(val, req).json
+            return JSONResponse(PropertyResponse(val, req).dict)
         except Exception as ex:
-            resp.text = PropertyResponse(None, req,
-                            DriverException(0x500, 'Focuser.Position failed', ex)).json
+            return JSONResponse(PropertyResponse(None, req,
+                            DriverException(0x500, 'Focuser.Position failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class stepsize:
-
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
         if not ##IS DEV CONNECTED##:
-            resp.text = PropertyResponse(None, req,
-                            NotConnectedException()).json
-            return
+            return JSONResponse(PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         
         try:
             # ----------------------
             val = ## GET PROPERTY ##
             # ----------------------
-            resp.text = PropertyResponse(val, req).json
+            return JSONResponse(PropertyResponse(val, req).dict)
         except Exception as ex:
-            resp.text = PropertyResponse(None, req,
-                            DriverException(0x500, 'Focuser.Stepsize failed', ex)).json
+            return JSONResponse(PropertyResponse(None, req,
+                            DriverException(0x500, 'Focuser.Stepsize failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class tempcomp:
-
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
         if not ##IS DEV CONNECTED##:
-            resp.text = PropertyResponse(None, req,
-                            NotConnectedException()).json
-            return
+            return JSONResponse(PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         
         try:
             # ----------------------
             val = ## GET PROPERTY ##
             # ----------------------
-            resp.text = PropertyResponse(val, req).json
+            return JSONResponse(PropertyResponse(val, req).dict)
         except Exception as ex:
-            resp.text = PropertyResponse(None, req,
-                            DriverException(0x500, 'Focuser.Tempcomp failed', ex)).json
-
+            return JSONResponse(PropertyResponse(None, req,
+                            DriverException(0x500, 'Focuser.Tempcomp failed', ex)).dict)
+    @PreProcessRequest(maxdev)
     def on_put(self, req: Request, resp: Response, devnum: int):
         if not ## IS DEV CONNECTED ##:
-            resp.text = PropertyResponse(None, req,
-                            NotConnectedException()).json
-            return
+            return JSONResponse(PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         
         tempcompstr = get_request_field('TempComp', req)      # Raises 400 bad request if missing
         try:
             tempcomp = to_bool(tempcompstr)
         except:
-            resp.text = MethodResponse(req,
-                            InvalidValueException(f'TempComp {tempcompstr} not a valid boolean.')).json
-            return
+            return JSONResponse(MethodResponse(req,
+                            InvalidValueException(f'TempComp {tempcompstr} not a valid boolean.')).dict)
 
         try:
             # -----------------------------
             ### DEVICE OPERATION(PARAM) ###
             # -----------------------------
-            resp.text = MethodResponse(req).json
+            return JSONResponse(MethodResponse(req).dict)
         except Exception as ex:
-            resp.text = MethodResponse(req,
-                            DriverException(0x500, 'Focuser.Tempcomp failed', ex)).json
+            return JSONResponse(MethodResponse(req,
+                            DriverException(0x500, 'Focuser.Tempcomp failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class tempcompavailable:
-
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
         if not ##IS DEV CONNECTED##:
-            resp.text = PropertyResponse(None, req,
-                            NotConnectedException()).json
-            return
+            return JSONResponse(PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         
         try:
             # ----------------------
             val = ## GET PROPERTY ##
             # ----------------------
-            resp.text = PropertyResponse(val, req).json
+            return JSONResponse(PropertyResponse(val, req).dict)
         except Exception as ex:
-            resp.text = PropertyResponse(None, req,
-                            DriverException(0x500, 'Focuser.Tempcompavailable failed', ex)).json
+            return JSONResponse(PropertyResponse(None, req,
+                            DriverException(0x500, 'Focuser.Tempcompavailable failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class temperature:
-
+    @PreProcessRequest(maxdev)
     def on_get(self, req: Request, resp: Response, devnum: int):
         if not ##IS DEV CONNECTED##:
-            resp.text = PropertyResponse(None, req,
-                            NotConnectedException()).json
-            return
+            return JSONResponse(PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         
         try:
             # ----------------------
             val = ## GET PROPERTY ##
             # ----------------------
-            resp.text = PropertyResponse(val, req).json
+            return JSONResponse(PropertyResponse(val, req).dict)
         except Exception as ex:
-            resp.text = PropertyResponse(None, req,
-                            DriverException(0x500, 'Focuser.Temperature failed', ex)).json
+            return JSONResponse(PropertyResponse(None, req,
+                            DriverException(0x500, 'Focuser.Temperature failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class halt:
-
+    @PreProcessRequest(maxdev)
     def on_put(self, req: Request, resp: Response, devnum: int):
         if not ## IS DEV CONNECTED ##:
-            resp.text = PropertyResponse(None, req,
-                            NotConnectedException()).json
-            return
+            return JSONResponse(PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         
         try:
             # -----------------------------
             ### DEVICE OPERATION(PARAM) ###
             # -----------------------------
-            resp.text = MethodResponse(req).json
+            return JSONResponse(MethodResponse(req).dict)
         except Exception as ex:
-            resp.text = MethodResponse(req,
-                            DriverException(0x500, 'Focuser.Halt failed', ex)).json
+            return JSONResponse(MethodResponse(req,
+                            DriverException(0x500, 'Focuser.Halt failed', ex)).dict)
 
-@before(PreProcessRequest(maxdev))
 class move:
-
+    @PreProcessRequest(maxdev)
     def on_put(self, req: Request, resp: Response, devnum: int):
         if not ## IS DEV CONNECTED ##:
-            resp.text = PropertyResponse(None, req,
-                            NotConnectedException()).json
-            return
+            return JSONResponse(PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         
         positionstr = get_request_field('Position', req)      # Raises 400 bad request if missing
         try:
             position = int(positionstr)
         except:
-            resp.text = MethodResponse(req,
-                            InvalidValueException(f'Position {positionstr} not a valid integer.')).json
-            return
+            return JSONResponse(MethodResponse(req,
+                            InvalidValueException(f'Position {positionstr} not a valid integer.')).dict)
         ### RANGE CHECK AS NEEDED ###  # Raise Alpaca InvalidValueException with details!
         try:
             # -----------------------------
             ### DEVICE OPERATION(PARAM) ###
             # -----------------------------
-            resp.text = MethodResponse(req).json
+            return JSONResponse(MethodResponse(req).dict)
         except Exception as ex:
-            resp.text = MethodResponse(req,
-                            DriverException(0x500, 'Focuser.Move failed', ex)).json
+            return JSONResponse(MethodResponse(req,
+                            DriverException(0x500, 'Focuser.Move failed', ex)).dict)
 
+def init_routes(server: Server, api_version):
+    server.add_routes([
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/action', PUT, action.on_put),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/commandblind', PUT, commandblind.on_put),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/commandbool', PUT, commandbool.on_put),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/commandstring', PUT, commandstring.on_put),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/connect', PUT, connect.on_put),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/connected', GET, connected.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/connected', PUT, connected.on_put),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/connecting', GET, connecting.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/description', GET, description.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/devicestate', GET, devicestate.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/disconnect', PUT, disconnect.on_put),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/driverinfo', GET, driverinfo.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/interfaceversion', GET, interfaceversion.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/driverversion', GET, driverversion.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/name', GET, name.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/supportedactions', GET, supportedactions.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/absolute', GET, absolute.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/ismoving', GET, ismoving.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/maxincrement', GET, maxincrement.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/maxstep', GET, maxstep.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/position', GET, position.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/stepsize', GET, stepsize.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/tempcomp', GET, tempcomp.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/tempcomp', PUT, tempcomp.on_put),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/tempcompavailable', GET, tempcompavailable.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/temperature', GET, temperature.on_get),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/halt', PUT, halt.on_put),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/move', PUT, move.on_put),
+    ])
