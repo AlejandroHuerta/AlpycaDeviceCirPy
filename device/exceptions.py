@@ -32,20 +32,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 # -----------------------------------------------------------------------------
-# Edit History:
-# 17-Dec-2022   rbd 0.1 Initial edit for Alpaca sample/template
-# 18-Dec-2022   rbd 0.1 Refactor to support optional overriding
-#                       error message, and support DriverException
-#                       with variable error number.
-# 26-Dev-2022   rbd 0.1 Logging, including Python low level exceptions
-# 27-Dec-2022   rbd 0.1 MIT License and module header
-# 13-Jan-2023   rbd 0.1 Fix DriverException's recovery from bad error number
-# 16-Jan-2023   rbd 0.1 Docstrings for other exception classes
-# 05-Mar-2024   rbd 0.7 OperationCancelled exception for Platform 7
-#
+
 import traceback
 from config import Config
-from logging import Logger
 
 global logger
 #logger: Logger = None
@@ -148,7 +137,7 @@ class DriverException:
         cname = self.__class__.__name__
         if not exc is None:
             if Config.verbose_driver_exceptions:
-                self.fullmsg = f'{cname}: {message}\n{traceback.format_exc()}'  # TODO Safe if not explicitly using exc?
+                self.fullmsg = f'{cname}: {message}\n{traceback.format_exception(exc)}'  # TODO Safe if not explicitly using exc?
             else:
                 self.fullmsg = f'{cname}: {message}\n{type(exc).__name__}: {str(exc)}'
         else:
@@ -382,4 +371,3 @@ class ValueNotSetException:
     @property
     def Message(self) -> str:
         return self.message
-

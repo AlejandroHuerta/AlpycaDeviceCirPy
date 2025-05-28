@@ -32,56 +32,42 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 # -----------------------------------------------------------------------------
-# Edit History:
-# 17-Dec-2022   rbd 0.1 Initial edit for Alpaca sample/template
-# 19-Dec-2022   rbd 0.1 Constants in shr.py
-# 22-Dec-2022   rbd 0.1 Device metadata, Configuration
-# 25-Dec-2022   rbd 0.1 Logging typing for intellisense
-# 27-Dec-2022   rbd 0.1 Minimize imports. MIT license and module header.
-#               Enhanced logging.
-# 23-May-2023   rbd 0.2 Refactoring for  multiple ASCOM device type support
-#               GitHub issue #1
-#
-from falcon import Request, Response
+
+from adafruit_httpserver import Request, JSONResponse
 from shr import PropertyResponse, DeviceMetadata
 from config import Config
-from logging import Logger
 # For each *type* of device served
 from rotator import RotatorMetadata
 
-logger: Logger = None
-#logger = None                   # Safe on Python 3.7 but no intellisense in VSCode etc.
-
-def set_management_logger(lgr):
-    global logger
-    logger = lgr
+global logger
+logger = None                   # Safe on Python 3.7 but no intellisense in VSCode etc.
 
 # -----------
 # APIVersions
 # -----------
 class apiversions:
-    def on_get(self, req: Request, resp: Response):
+    def on_get(req: Request):
         apis = [ 1 ]                            # TODO MAKE CONFIG OR GLOBAL
-        resp.text = PropertyResponse(apis, req).json
+        return JSONResponse(req, PropertyResponse(apis, req).dict)
 
 # -------------------------
 # Alpaca Server Description
 # -------------------------
 class description:
-    def on_get(self, req: Request, resp: Response):
+    def on_get(req: Request):
         desc = {
             'ServerName'   : DeviceMetadata.Description,
             'Manufacturer' : DeviceMetadata.Manufacturer,
             'Version'      : DeviceMetadata.Version,
             'Location'     : Config.location
             }
-        resp.text = PropertyResponse(desc, req).json
+        return JSONResponse(req, PropertyResponse(desc, req).dict)
 
 # -----------------
 # ConfiguredDevices
 # -----------------
 class configureddevices():
-    def on_get(self, req: Request, resp: Response):
+    def on_get(req: Request):
         confarray = [    # TODO ADD ONE FOR EACH DEVICE TYPE AND INSTANCE SERVED
             {
             'DeviceName'    : RotatorMetadata.Name,
@@ -90,4 +76,4 @@ class configureddevices():
             'UniqueID'      : RotatorMetadata.DeviceID
             }
         ]
-        resp.text = PropertyResponse(confarray, req).json
+        return JSONResponse(req, PropertyResponse(confarray, req).dict)

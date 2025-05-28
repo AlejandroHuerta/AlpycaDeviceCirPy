@@ -31,15 +31,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 # -----------------------------------------------------------------------------
-# Edit History:
-# 01-Jan-2023   rbd 0.1 Initial edit, moved from config.py
-# 15-Jan-2023   rbd 0.1 Documentation. No logic changes.
-# 08-Nov-2023   rbd 0.4 Log name is now 'alpyca'
-# 17-Feb-2024   rbd 0.6 Additional documentation.
 
-import logging
-import logging.handlers
-import time
+import adafruit_logging as logging
+import storage
 from config import Config
 
 global logger
@@ -70,21 +64,23 @@ def init_logging():
 
     """
 
-    logging.basicConfig(level=Config.log_level)
     logger = logging.getLogger()                # Root logger, see above
-    formatter = logging.Formatter('%(asctime)s.%(msecs)03d %(levelname)s %(message)s', '%Y-%m-%dT%H:%M:%S')
-    formatter.converter = time.gmtime           # UTC time
-    logger.handlers[0].setFormatter(formatter)  # This is the stdout handler, level set above
-    # Add a logfile handler, same formatter and level
-    handler = logging.handlers.RotatingFileHandler('alpyca.log',
-                                                    mode='w',
-                                                    delay=True,     # Prevent creation of empty logs
-                                                    maxBytes=Config.max_size_mb * 1000000,
-                                                    backupCount=Config.num_keep_logs)
-    handler.setLevel(Config.log_level)
-    handler.setFormatter(formatter)
-    handler.doRollover()                                            # Always start with fresh log
-    logger.addHandler(handler)
+    logger.setLevel(Config.log_level)
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s', '%Y-%m-%dT%H:%M:%S')
+    logging._default_handler.setFormatter(formatter)  # This is the stdout handler, level set above
+    
+    fat = storage.getmount("/")
+    if not fat.readonly:
+        # Add a logfile handler, same formatter and level
+        handler = logging.RotatingFileHandler('alpyca.log',
+                                                        mode='w',
+                                                        maxBytes=Config.max_size_mb * 1000000,
+                                                        backupCount=Config.num_keep_logs)
+        handler.setLevel(Config.log_level)
+        handler.setFormatter(formatter)
+        handler.doRollover()                                            # Always start with fresh log
+        logger.addHandler(handler)
+
     if not Config.log_to_stdout:
         """
             This allows control of logging to stdout by simply
@@ -93,5 +89,5 @@ def init_logging():
             by logging.basicConfig()
         """
         logger.debug('Logging to stdout disabled in settings')
-        logger.removeHandler(logger.handlers[0])    # This is the stdout handler
+        logger._default_handler = logging.NullHandler()    # This is the stdout handler
     return logger

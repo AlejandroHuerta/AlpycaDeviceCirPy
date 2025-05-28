@@ -32,52 +32,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 # -----------------------------------------------------------------------------
-# Edit History:
-# 15-Dec-2022   rbd 0.1 Initial edit for Alpaca sample/template
-# 18-Dev-2022   rbd 0.1 Additional driver info items
-# 20-Dec-2022   rbd 0.1 Fix idiotic error in to_bool()
-# 22-Dec-2022   rbd 0.1 DeviceMetadata
-# 24-Dec-2022   rbd 0.1 Logging
-# 25-Dec-2022   rbd 0.1 Logging typing for intellisense
-# 26-Dec-2022   rbd 0.1 Refactor logging to config module.
-# 27-Dec-2022   rbd 0.1 Methods can return values. Common request
-#                       logging (before starting processing).
-#                       MIT license and module header. Logging cleanup.
-#                       Python 3.7 global restriction.
-# 28-Dec-2022   rbd 0.1 Rename conf.py to config.py to avoid conflict with sphinx
-# 29-Dec-2022   rbd 0.1 ProProcess() Falcon hook class for pre-logging and
-#                       common request validation (Client IDs for now).
-# 31-Dec-2022   rbd 0.1 Bad boolean values return 400 Bad Request
-# 10-Jan-2023   rbd 0.1 Cleanups for documentation and add docstrings for Sphinx.
-# 23-May-2023   rbd 0.2 Refactoring for multiple ASCOM device type support
-#               GitHub issue #1. Improve error messages in PreProcessRequest().
-# 29-May-2023   rbd 0.2 Enhance get_request_field() so empty string for default
-#               value means mandatory field. Add title and description info
-#               to raised HTTP BAD_REQUEST.
-# 30-May-2023   rbd 0.3 Improve request logging at time of arrival
-# 01-Jun-2023   rbd 0.3 Issue #2 Do not return empty Value field in property
-#               response, and omit Value if error is not success().
-# 16-Feb-2024   rbd 0.6 For Platform 7, common DeviceState property.
-#               New StateValue object, and enhance PropertyResponse to
-#               serialize objects into JSON (the StateValue objects).
-# 16-Feb-2025   rbd 1.0.2 Issue #17 Correct handling of ClientID and
-#               ClientTransactionID. Add missing keywords to some Falcon
-#               HTTPBadRequest exceptions to prevent deprecation warnings.
 
-from threading import Lock
 from exceptions import Success
 import json
-from falcon import Request, Response, HTTPBadRequest
-from logging import Logger
+from adafruit_httpserver import Request, Response, InvalidPathError, BAD_REQUEST_400, FormData
 
-logger: Logger = None
-#logger = None                   # Safe on Python 3.7 but no intellisense in VSCode etc.
+global logger
+logger = None                   # Safe on Python 3.7 but no intellisense in VSCode etc.
 
 _bad_title = 'Bad Alpaca Request'
 
-def set_shr_logger(lgr):
-    global logger
-    logger = lgr
 
 # --------------------------
 # Alpaca Device/Server Info
@@ -85,8 +49,8 @@ def set_shr_logger(lgr):
 # Static metadata not subject to configuration changes
 class DeviceMetadata:
     """ Metadata describing the Alpaca Device/Server """
-    Version = '0.2'
-    Description = 'Alpaca Sample Rotator '
+    Version = '0.1'
+    Description = 'Alpyca32'
     Manufacturer = 'ASCOM Initiative'
 
 # --------------------------------
@@ -97,10 +61,6 @@ class StateValue:
         self.Name = name
         self.Value = value
 
-    @property
-    def json(self) -> str:
-        return json.dumps(self.__dict__)
-
 # ---------------
 # Data Validation
 # ---------------
@@ -108,7 +68,7 @@ _bools = ['true', 'false']                               # Only valid JSON bools
 def to_bool(str: str) -> bool:
     val = str.lower()
     if val not in _bools:
-        raise HTTPBadRequest(title=_bad_title, description=f'Bad boolean value "{val}"')
+        raise InvalidPathError(_bad_title, f'Bad boolean value "{val}"')
     return val == _bools[0]
 
 # ---------------------------------------------------------
@@ -122,14 +82,16 @@ def get_request_field(name: str, req: Request, caseless: bool = False, default: 
     bad_desc = f'Missing, empty, or misspelled parameter "{name}"'
     lcName = name.lower()
     if req.method == 'GET':
-        for param in req.params.items():        # [name,value] tuples
+        for param in req.query_params.items():        # [name,value] tuples
             if param[0].lower() == lcName:
+                if param[1] == None:
+                    return default
                 return param[1]
         if default == None:
-            raise HTTPBadRequest(title=_bad_title, description=bad_desc)                # Missing or incorrect casing
+            raise InvalidPathError(_bad_title, bad_desc)                # Missing or incorrect casing
         return default                          # not in args, return default
     else:                                       # Assume PUT since we never route other methods
-        formdata = req.get_media()
+        formdata = get_form_data(req)
         if caseless:
             for fn in formdata.keys():
                 if fn.lower() == lcName:
@@ -138,20 +100,23 @@ def get_request_field(name: str, req: Request, caseless: bool = False, default: 
             if name in formdata and formdata[name] != '':
                 return formdata[name]
         if default == None:
-            raise HTTPBadRequest(title=_bad_title, description=bad_desc)                # Missing or incorrect casing
+            raise InvalidPathError(_bad_title, bad_desc)                # Missing or incorrect casing
         return default
+    
+def get_form_data(req: Request):
+    if req._form_data == None: # adafruit_httpserver only parses form data on POST, so we have to do it manually ourselves
+        req._form_data = FormData(req.body, req.headers, debug=req.server.debug)
+    return req.form_data
 
 #
 # Log the request as soon as the resource handler gets it so subsequent
 # logged messages are in the right order. Logs PUT body as well.
 #
 def log_request(req: Request):
-    msg = f'{req.remote_addr} -> {req.method} {req.path}'
-    if req.query_string != '':
-        msg += f'?{req.query_string}'
+    msg = f'{req.client_address} -> {req.method} {req.path}'
     logger.info(msg)
-    if req.method == 'PUT' and req.content_length != 0:
-        logger.info(f'{req.remote_addr} -> {req.media}')
+    if req.method == 'PUT' and req.body.count != 0:
+        logger.info(f'{req.client_address} -> {get_form_data(req)}')
 
 # ------------------------------------------------
 # Incoming Pre-Logging and Request Quality Control
@@ -171,8 +136,6 @@ class PreProcessRequest():
             maxdev: The maximun device number. If multiple instances of this device
                 type are supported, this will be > 0.
 
-        Notes:
-            * Bumps the ServerTransactionID value and returns it in sequence
         """
 
     #
@@ -186,33 +149,43 @@ class PreProcessRequest():
         except ValueError:
             return False
 
-    def _check_request(self, req: Request, devnum: int):  # Raise on failure
-        if devnum > self.maxdev:
-            msg = f'Device number {str(devnum)} does not exist. Maximum device number is {self.maxdev}.'
+    def _check_request(self, req: Request, devnum: str):  # Raise on failure
+        if not self._pos_or_zero(devnum):
+            msg = f'Request has bad Alpaca device number value {devnum}'
             logger.error(msg)
-            raise HTTPBadRequest(title=_bad_title, description=msg)
+            raise InvalidPathError(_bad_title, msg)
+        if int(devnum) > self.maxdev:
+            msg = f'Device number {devnum} does not exist. Maximum device number is {self.maxdev}.'
+            logger.error(msg)
+            raise InvalidPathError(_bad_title, msg)
         test: str = get_request_field('ClientID', req, True, '0')   # Caseless, default = 0 if missing
         if not self._pos_or_zero(test):
             msg = f'Request has bad Alpaca ClientID value {test}'
             logger.error(msg)
-            raise HTTPBadRequest(title=_bad_title, description=msg)
+            raise InvalidPathError(_bad_title, msg)
         if test == '0':
-            req.params['ClientID'] = '0'                            # In case it's missing
+            req.query_params._add_field_value('ClientID', '0')                            # In case it's missing
         test: str = get_request_field('ClientTransactionID', req, True, '0') # Caseless, default = 0 if missing
         if not self._pos_or_zero(test):
             msg = f'Request has bad Alpaca ClientTransactionID value {test}'
             logger.error(msg)
-            raise HTTPBadRequest(title=_bad_title, description=msg)
+            raise InvalidPathError(_bad_title, msg)
         if test == '0':
-            req.params['ClientTransactionID'] = '0'                 # In case it's missing
+            req.query_params._add_field_value('ClientTransactionID', '0')                 # In case it's missing
 
     #
     # params contains {'devnum': n } from the URI template matcher
     # and format converter. This is the device number from the URI
     #
-    def __call__(self, req: Request, resp: Response, resource, params):
-        log_request(req)                            # Log even a bad request
-        self._check_request(req, params['devnum'])   # Raises to 400 error on check failure
+    def __call__(self, func):
+        def wrapper(req: Request, devnum: str):        
+            log_request(req)                            # Log even a bad request
+            try:
+                self._check_request(req, devnum)   # Raises to 400 error on check failure
+                return func(req, devnum)
+            except InvalidPathError as e:
+                return Response(req, str(e), status=BAD_REQUEST_400)
+        return wrapper
 
 # ------------------
 # PropertyResponse
@@ -236,16 +209,30 @@ class PropertyResponse():
         self.ClientTransactionID = int(get_request_field('ClientTransactionID', req, False, 0))  #Caseless on GET
         if err.Number == 0 and not value is None:
             self.Value = value
-            logger.info(f'{req.remote_addr} <- {str(value)}')
+            logger.info(f'{req.client_address} <- {str(value)}')
         self.ErrorNumber = err.Number
         self.ErrorMessage = err.Message
 
     @property
     def json(self) -> str:
         """Return the JSON for the Property Response"""
-#       # This trickery allows serializing the StateValue object into the JSON
-        # https://stackoverflow.com/questions/3768895/how-to-make-a-class-json-serializable
-        return json.dumps(self, default=lambda o: o.__dict__)
+        return json.dumps(self.dict)
+    
+    @property
+    def dict(self):
+        response_obj = {"ServerTransactionID": self.ServerTransactionID, "ClientTransactionID": self.ClientTransactionID, "ErrorNumber": self.ErrorNumber, "ErrorMessage": self.ErrorMessage}
+        if hasattr(self, "Value"):
+            if isinstance(self.Value, list):
+                simplified = []
+                for state_value in self.Value:
+                    if isinstance(state_value, StateValue):
+                        simplified.append({"Name": state_value.Name, "Value": state_value.Value})
+                    else:
+                        simplified.append(state_value)
+                response_obj["Value"] = simplified
+            else:
+                response_obj["Value"] = self.Value
+        return response_obj
 
 # --------------
 # MethodResponse
@@ -270,7 +257,7 @@ class MethodResponse():
         self.ClientTransactionID = int(get_request_field('ClientTransactionID', req, False, 0))
         if err.Number == 0 and not value is None:
             self.Value = value
-            logger.info(f'{req.remote_addr} <- {str(value)}')
+            logger.info(f'{req.client_address} <- {str(value)}')
         self.ErrorNumber = err.Number
         self.ErrorMessage = err.Message
 
@@ -278,18 +265,28 @@ class MethodResponse():
     @property
     def json(self) -> str:
         """Return the JSON for the Method Response"""
-        # Simple scalars here so no need for fancy conversion
-        return json.dumps(self.__dict__)
+        return json.dumps(self.dict)
+    
+    @property
+    def dict(self):
+        response_obj = {"ServerTransactionID": self.ServerTransactionID, "ClientTransactionID": self.ClientTransactionID, "ErrorNumber": self.ErrorNumber, "ErrorMessage": self.ErrorMessage}
+        if hasattr(self, "Value"):
+            if isinstance(self.Value, list):
+                simplified = []
+                for state_value in self.Value:
+                    if isinstance(state_value, StateValue):
+                        simplified.append({"Name": state_value.Name, "Value": state_value.Value})
+                    else:
+                        simplified.append(state_value)
+                response_obj["Value"] = simplified
+            else:
+                response_obj["Value"] = self.Value
+        return response_obj
 
 
-# -------------------------------
-# Thread-safe ServerTransactionID
-# -------------------------------
-_lock = Lock()
 _stid = 0
 
 def getNextTransId() -> int:
-    with _lock:
-        global _stid
-        _stid += 1
+    global _stid
+    _stid += 1
     return _stid
