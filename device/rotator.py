@@ -64,7 +64,7 @@
 #               string to float conversions instead of just 400 errors.
 #
 import time
-from adafruit_httpserver import Request, Response, Server, Route, GET, PUT, BAD_REQUEST_400, InvalidPathError
+from adafruit_httpserver import Request, Response, JSONResponse, Server, Route, GET, PUT, BAD_REQUEST_400, InvalidPathError
 from adafruit_logging import Logger
 from shr import PropertyResponse, MethodResponse, PreProcessRequest, \
                 StateValue, get_request_field, to_bool
@@ -134,30 +134,30 @@ class action:
             logger.info('YourAction called')
             # Execute rot_dev.YourAction(params)
         else:
-            return Response(req, MethodResponse(req, ActionNotImplementedException()).json)
+            return JSONResponse(req, MethodResponse(req, ActionNotImplementedException()).dict)
         # If you don't want to implement this at all then
-        # return Response(req, MethodResponse(req, NotImplementedException()).json)
+        # return JSONResponse(req, MethodResponse(req, NotImplementedException()).dict)
 
 
 class commandblind:
     # Do not use
     @PreProcessRequest(maxdev)
     def on_put(req: Request, devnum: int):
-        return Response(req, MethodResponse(req, NotImplementedException()).json)
+        return JSONResponse(req, MethodResponse(req, NotImplementedException()).dict)
 
 
 class commandbool:
     # Do not use
     @PreProcessRequest(maxdev)
     def on_put(req: Request, devnum: int):
-        return Response(req, MethodResponse(req, NotImplementedException()).json)
+        return JSONResponse(req, MethodResponse(req, NotImplementedException()).dict)
 
 
 class commandstring:
     # Do not use
     @PreProcessRequest(maxdev)
     def on_put(req: Request, devnum: int):
-        return Response(req, MethodResponse(req, NotImplementedException()).json)
+        return JSONResponse(req, MethodResponse(req, NotImplementedException()).dict)
 
 # Connected, though common, is implemented in rotator.py
 
@@ -169,7 +169,7 @@ class description:
     """
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
-        return Response(req, PropertyResponse(RotatorMetadata.Description, req).json)
+        return JSONResponse(req, PropertyResponse(RotatorMetadata.Description, req).dict)
 
 
 class driverinfo:
@@ -179,7 +179,7 @@ class driverinfo:
     """
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
-        return Response(req, PropertyResponse(RotatorMetadata.Info, req).json)
+        return JSONResponse(req, PropertyResponse(RotatorMetadata.Info, req).dict)
 
 
 class interfaceversion:
@@ -190,7 +190,7 @@ class interfaceversion:
     """
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
-        return Response(req, PropertyResponse(RotatorMetadata.InterfaceVersion, req).json)
+        return JSONResponse(req, PropertyResponse(RotatorMetadata.InterfaceVersion, req).dict)
 
 
 class driverversion:
@@ -200,7 +200,7 @@ class driverversion:
     """
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
-        return Response(req, PropertyResponse(RotatorMetadata.Version, req).json)
+        return JSONResponse(req, PropertyResponse(RotatorMetadata.Version, req).dict)
 
 
 class name:
@@ -210,7 +210,7 @@ class name:
     """
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
-        return Response(req, PropertyResponse(RotatorMetadata.Name, req).json)
+        return JSONResponse(req, PropertyResponse(RotatorMetadata.Name, req).dict)
 
 
 class supportedactions:
@@ -224,7 +224,7 @@ class supportedactions:
         val = []
         val.append('MyAction')
         val.append('YourAction')
-        return Response(req, PropertyResponse(val, req).json)  # Not PropertyNotImplemented
+        return JSONResponse(req, PropertyResponse(val, req).dict)  # Not PropertyNotImplemented
 
 
 class canreverse:
@@ -236,7 +236,7 @@ class canreverse:
     """
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
-        return Response(req, PropertyResponse(True, req).json)    # IRotatorV3, CanReverse must be True
+        return JSONResponse(req, PropertyResponse(True, req).dict)    # IRotatorV3, CanReverse must be True
 
 
 class connect:
@@ -248,10 +248,10 @@ class connect:
     def on_put(req: Request, devnum: int):
         try:
             rot_dev.Connect()
-            return Response(req, MethodResponse(req).json)
+            return JSONResponse(req, MethodResponse(req).dict)
         except Exception as ex:
-            return Response(req, MethodResponse(req,
-                            DriverException(0x500, 'Rotator.Connect failed', ex)).json)
+            return JSONResponse(req, MethodResponse(req,
+                            DriverException(0x500, 'Rotator.Connect failed', ex)).dict)
 
 
 class connected:
@@ -267,7 +267,7 @@ class connected:
     """
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
-        return Response(req, PropertyResponse(rot_dev.connected, req).json)
+        return JSONResponse(req, PropertyResponse(rot_dev.connected, req).dict)
 
     @PreProcessRequest(maxdev)
     def on_put(req: Request, devnum: int):
@@ -278,12 +278,12 @@ class connected:
             # ----------------------
             rot_dev.connected = conn
             # ----------------------
-            return Response(req, MethodResponse(req).json)
+            return JSONResponse(req, MethodResponse(req).dict)
         except InvalidPathError as e:
             return Response(req, str(e), status=BAD_REQUEST_400)
         except Exception as ex:
-            return Response(req, MethodResponse(req, # Put is actually like a method :-(
-                            DriverException(0x500, 'Rotator.Connected failed', ex)).json)
+            return JSONResponse(req, MethodResponse(req, # Put is actually like a method :-(
+                            DriverException(0x500, 'Rotator.Connected failed', ex)).dict)
 
 
 class connecting:
@@ -295,10 +295,10 @@ class connecting:
     def on_get(req: Request, devnum: int):
         try:
             val = rot_dev.connecting
-            return Response(req, PropertyResponse(val, req).json)
+            return JSONResponse(req, PropertyResponse(val, req).dict)
         except Exception as ex:
-            return Response(req, PropertyResponse(None, req,
-                            DriverException(0x500, 'Rotator.Connecting failed', ex)).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            DriverException(0x500, 'Rotator.Connecting failed', ex)).dict)
 
 
 class devicestate:
@@ -309,8 +309,8 @@ class devicestate:
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
         if not rot_dev.connected:
-            return Response(req, PropertyResponse(None, req,
-                            NotConnectedException()).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         try:
             now = time.localtime()
             asctime = (f"{now.tm_year}-{now.tm_mon:02d}-{now.tm_mday:02d} {now.tm_hour:02d}:{now.tm_min:02d}:{now.tm_sec:02d}")
@@ -319,10 +319,10 @@ class devicestate:
             val.append(StateValue('MechanicalPosition', rot_dev.mechanical_position))
             val.append(StateValue('Position', rot_dev.position))
             val.append(StateValue('TimeStamp', asctime))
-            return Response(req, PropertyResponse(val, req).json)
+            return JSONResponse(req, PropertyResponse(val, req).dict)
         except Exception as ex:
-            return Response(req, PropertyResponse(None, req,
-                            DriverException(0x500, 'Camera.Devicestate failed', ex)).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            DriverException(0x500, 'Camera.Devicestate failed', ex)).dict)
 
 
 class disconnect:
@@ -336,10 +336,10 @@ class disconnect:
     def on_put(req: Request, devnum: int):
         try:
             rot_dev.Disconnect()
-            return Response(req, MethodResponse(req).json)
+            return JSONResponse(req, MethodResponse(req).dict)
         except Exception as ex:
-            return Response(req, MethodResponse(req,
-                            DriverException(0x500, 'Rotator.Disconnect failed', ex)).json)
+            return JSONResponse(req, MethodResponse(req,
+                            DriverException(0x500, 'Rotator.Disconnect failed', ex)).dict)
 
 
 class ismoving:
@@ -350,16 +350,16 @@ class ismoving:
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
         if not rot_dev.connected:
-            return Response(req, PropertyResponse(None, req,
-                            NotConnectedException()).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         try:
             # ---------------------
             moving = rot_dev.is_moving
             # ---------------------
-            return Response(req, PropertyResponse(moving, req).json)
+            return JSONResponse(req, PropertyResponse(moving, req).dict)
         except Exception as ex:
-            return Response(req, PropertyResponse(None, req,
-                            DriverException(0x500, 'Rotator.IsMovingfailed', ex)).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            DriverException(0x500, 'Rotator.IsMovingfailed', ex)).dict)
 
 
 class mechanicalposition:
@@ -370,16 +370,16 @@ class mechanicalposition:
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
         if not rot_dev.connected:
-            return Response(req, PropertyResponse(None, req,
-                            NotConnectedException()).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         try:
             # -------------------------------
             pos = rot_dev.mechanical_position
             # -------------------------------
-            return Response(req, PropertyResponse(pos, req).json)
+            return JSONResponse(req, PropertyResponse(pos, req).dict)
         except Exception as ex:
-            return Response(req, PropertyResponse(None, req,
-                            DriverException(0x500, 'Rotator.MechanicalPosition failed', ex)).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            DriverException(0x500, 'Rotator.MechanicalPosition failed', ex)).dict)
 
 
 class position:
@@ -390,16 +390,16 @@ class position:
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
         if not rot_dev.connected:
-            return Response(req, PropertyResponse(None, req,
-                            NotConnectedException()).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         try:
             # -------------------------------
             pos = rot_dev.position
             # -------------------------------
-            return Response(req, PropertyResponse(pos, req).json)
+            return JSONResponse(req, PropertyResponse(pos, req).dict)
         except Exception as ex:
-            return Response(req, PropertyResponse(None, req,
-                            DriverException(0x500, 'Rotator.Position failed', ex)).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            DriverException(0x500, 'Rotator.Position failed', ex)).dict)
 
 
 class reverse:
@@ -410,38 +410,38 @@ class reverse:
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
         if not rot_dev.connected:
-            return Response(req, PropertyResponse(None, req,
-                            NotConnectedException()).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         try:
             # -------------------
             rev = rot_dev.reverse
             # -------------------
-            return Response(req, PropertyResponse(rev, req).json)
+            return JSONResponse(req, PropertyResponse(rev, req).dict)
         except Exception as ex:
-            return Response(req, PropertyResponse(None, req,
-                            DriverException(0x500, 'Rotator.Reverse failed', ex)).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            DriverException(0x500, 'Rotator.Reverse failed', ex)).dict)
 
     @PreProcessRequest(maxdev)
     def on_put(req: Request, devnum: int):
         if not rot_dev.connected:
-            return Response(req, MethodResponse(req,
-                            NotConnectedException()).json)
+            return JSONResponse(req, MethodResponse(req,
+                            NotConnectedException()).dict)
         revstr = get_request_field('Reverse', req)
         try:
             rev = to_bool(revstr)
         except InvalidPathError as e:
             return Response(req, str(e), status=BAD_REQUEST_400)
         except:
-            return Response(req, MethodResponse(req,
-                            InvalidValueException(f'Reverse {revstr} not a valid boolean.')).json)
+            return JSONResponse(req, MethodResponse(req,
+                            InvalidValueException(f'Reverse {revstr} not a valid boolean.')).dict)
         try:
             # ----------------------
             rot_dev.reverse = rev
             # ----------------------
-            return Response(req, MethodResponse(req).json)
+            return JSONResponse(req, MethodResponse(req).dict)
         except Exception as ex:
-            return Response(req, MethodResponse(req, # Put is actually like a method :-(
-                            DriverException(0x500, 'Rotator.Reverse failed', ex)).json)
+            return JSONResponse(req, MethodResponse(req, # Put is actually like a method :-(
+                            DriverException(0x500, 'Rotator.Reverse failed', ex)).dict)
 
 
 class stepsize:
@@ -452,16 +452,16 @@ class stepsize:
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
         if not rot_dev.connected:
-            return Response(req, PropertyResponse(None, req,
-                            NotConnectedException()).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         try:
             # ---------------------
             steps = rot_dev.step_size
             # ---------------------
-            return Response(req, PropertyResponse(steps, req).json)
+            return JSONResponse(req, PropertyResponse(steps, req).dict)
         except Exception as ex:
-            return Response(req, PropertyResponse(None, req,
-                            DriverException(0x500, 'Rotator.StepSize failed', ex)).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            DriverException(0x500, 'Rotator.StepSize failed', ex)).dict)
 
 
 class targetposition:
@@ -472,16 +472,16 @@ class targetposition:
     @PreProcessRequest(maxdev)
     def on_get(req: Request, devnum: int):
         if not rot_dev.connected:
-            return Response(req, PropertyResponse(None, req,
-                            NotConnectedException()).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            NotConnectedException()).dict)
         try:
             # ---------------------------
             pos = rot_dev.target_position
             # ---------------------------
-            return Response(req, PropertyResponse(pos, req).json)
+            return JSONResponse(req, PropertyResponse(pos, req).dict)
         except Exception as ex:
-            return Response(req, PropertyResponse(None, req,
-                            DriverException(0x500, 'Rotator.TargetPosition failed', ex)).json)
+            return JSONResponse(req, PropertyResponse(None, req,
+                            DriverException(0x500, 'Rotator.TargetPosition failed', ex)).dict)
 
 
 class halt:
@@ -492,16 +492,16 @@ class halt:
     @PreProcessRequest(maxdev)
     def on_put(req: Request, devnum: int):
         if not rot_dev.connected:
-            return Response(req, MethodResponse(req,
-                            NotConnectedException()).json)
+            return JSONResponse(req, MethodResponse(req,
+                            NotConnectedException()).dict)
         try:
             # ------------
             rot_dev.Halt()
             # ------------
-            return Response(req, MethodResponse(req).json)
+            return JSONResponse(req, MethodResponse(req).dict)
         except Exception as ex:
-            return Response(req, MethodResponse(req,
-                            DriverException(0x500, 'Rotator.Halt failed', ex)).json)
+            return JSONResponse(req, MethodResponse(req,
+                            DriverException(0x500, 'Rotator.Halt failed', ex)).dict)
 
 
 
@@ -513,14 +513,14 @@ class move:
     @PreProcessRequest(maxdev)
     def on_put(req: Request, devnum: int):
         if not rot_dev.connected:
-            return Response(req, MethodResponse(req,
-                            NotConnectedException()).json)
+            return JSONResponse(req, MethodResponse(req,
+                            NotConnectedException()).dict)
         newpos_str = get_request_field('Position', req)    # May raise 400 bad request
         try:
             newpos = origpos = float(newpos_str)
         except:
-            return Response(req, MethodResponse(req,
-                            InvalidValueException(f'Position {newpos_str} not a valid float.')).json)
+            return JSONResponse(req, MethodResponse(req,
+                            InvalidValueException(f'Position {newpos_str} not a valid float.')).dict)
         # The spec calls for "anything goes" requires you to range the
         # final value modulo 360 degrees.
         if newpos >= 360.0:
@@ -533,10 +533,10 @@ class move:
             # ------------------
             rot_dev.Move(newpos)    # async
             # ------------------
-            return Response(req, MethodResponse(req).json)
+            return JSONResponse(req, MethodResponse(req).dict)
         except Exception as ex:
-            return Response(req, MethodResponse(req,
-                            DriverException(0x500, 'Rotator.Move failed', ex)).json)
+            return JSONResponse(req, MethodResponse(req,
+                            DriverException(0x500, 'Rotator.Move failed', ex)).dict)
 
 
 class moveabsolute:
@@ -547,25 +547,25 @@ class moveabsolute:
     @PreProcessRequest(maxdev)
     def on_put(req: Request, devnum: int):
         if not rot_dev.connected:
-            return Response(req, MethodResponse(req,
-                            NotConnectedException()).json)
+            return JSONResponse(req, MethodResponse(req,
+                            NotConnectedException()).dict)
         pos_str = get_request_field('Position', req)
         try:
             newpos = float(pos_str)
         except:
-            return Response(req, MethodResponse(req,
-                            InvalidValueException(f'Position {pos_str} not a valid float.')).json)
+            return JSONResponse(req, MethodResponse(req,
+                            InvalidValueException(f'Position {pos_str} not a valid float.')).dict)
         if newpos < 0.0 or newpos >= 360.0:
-            return Response(req, MethodResponse(req,
-                            InvalidValueException(f'Invalid position {str(newpos)} outside range 0 <= pos < 360.')).json)
+            return JSONResponse(req, MethodResponse(req,
+                            InvalidValueException(f'Invalid position {str(newpos)} outside range 0 <= pos < 360.')).dict)
         try:
             # --------------------------
             rot_dev.MoveAbsolute(newpos)    # async
             # --------------------------
-            return Response(req, MethodResponse(req).json)
+            return JSONResponse(req, MethodResponse(req).dict)
         except Exception as ex:
-            return Response(req, MethodResponse(req,
-                            DriverException(0x500, 'Rotator.MoveAbsolute failed', ex)).json)
+            return JSONResponse(req, MethodResponse(req,
+                            DriverException(0x500, 'Rotator.MoveAbsolute failed', ex)).dict)
 
 
 class movemechanical:
@@ -577,25 +577,25 @@ class movemechanical:
     def on_put(req: Request, devnum: int):
         formdata = req.get_media()
         if not rot_dev.connected:
-            return Response(req, MethodResponse(req,
-                            NotConnectedException()).json)
+            return JSONResponse(req, MethodResponse(req,
+                            NotConnectedException()).dict)
         pos_str = get_request_field('Position', req)
         try:
             newpos = float(pos_str)
         except:
-            return Response(req, MethodResponse(req,
-                            InvalidValueException(f'Position {pos_str} not a valid float.')).json)
+            return JSONResponse(req, MethodResponse(req,
+                            InvalidValueException(f'Position {pos_str} not a valid float.')).dict)
         if newpos < 0.0 or newpos >= 360.0:
-            return Response(req, MethodResponse(req,
-                            InvalidValueException(f'Invalid position {str(newpos)} outside range 0 <= pos < 360.')).json)
+            return JSONResponse(req, MethodResponse(req,
+                            InvalidValueException(f'Invalid position {str(newpos)} outside range 0 <= pos < 360.')).dict)
         try:
             # ----------------------------
             rot_dev.MoveMechanical(newpos)    # async
             # ----------------------------
-            return Response(req, MethodResponse(req).json)
+            return JSONResponse(req, MethodResponse(req).dict)
         except Exception as ex:
-            return Response(req, MethodResponse(req,
-                            DriverException(0x500, 'Rotator.MoveMechanical failed', ex)).json)
+            return JSONResponse(req, MethodResponse(req,
+                            DriverException(0x500, 'Rotator.MoveMechanical failed', ex)).dict)
 
 
 class sync:
@@ -607,25 +607,25 @@ class sync:
     def on_put(req: Request, devnum: int):
         formdata = req.get_media()
         if not rot_dev.connected:
-            return Response(req, MethodResponse(req,
-                            NotConnectedException()).json)
+            return JSONResponse(req, MethodResponse(req,
+                            NotConnectedException()).dict)
         pos_str = get_request_field('Position', req)
         try:
             newpos = float(pos_str)
         except:
-            return Response(req, MethodResponse(req,
-                            InvalidValueException(f'Position {pos_str} not a valid float.')).json)
+            return JSONResponse(req, MethodResponse(req,
+                            InvalidValueException(f'Position {pos_str} not a valid float.')).dict)
         if newpos < 0.0 or newpos >= 360.0:
-            return Response(req, MethodResponse(req,
-                            InvalidValueException(f'Invalid position {str(newpos)} outside range 0 <= pos < 360.')).json)
+            return JSONResponse(req, MethodResponse(req,
+                            InvalidValueException(f'Invalid position {str(newpos)} outside range 0 <= pos < 360.')).dict)
         try:
             # ------------------
             rot_dev.Sync(newpos)
             # ------------------
-            return Response(req, MethodResponse(req).json)
+            return JSONResponse(req, MethodResponse(req).dict)
         except Exception as ex:
-            return Response(req, MethodResponse(req,
-                            DriverException(0x500, 'Rotator.Sync failed', ex)).json)
+            return JSONResponse(req, MethodResponse(req,
+                            DriverException(0x500, 'Rotator.Sync failed', ex)).dict)
 
 def init_routes(server: Server, api_version):
     server.add_routes([
