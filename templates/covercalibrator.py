@@ -415,5 +415,5 @@ def init_routes(server: Server, api_version):
         Route(f'/api/v{api_version}/covercalibrator/<devnum>/calibratoron', PUT, calibratoron.on_put),
         Route(f'/api/v{api_version}/covercalibrator/<devnum>/closecover', PUT, closecover.on_put),
         Route(f'/api/v{api_version}/covercalibrator/<devnum>/haltcover', PUT, haltcover.on_put),
-        Route(f'/api/v{api_version}/covercalibrator/<devnum>/opencover', PUT, calibratoron.on_put),
+        Route(f'/api/v{api_version}/covercalibrator/<devnum>/opencover', PUT, opencover.on_put),
     ])
